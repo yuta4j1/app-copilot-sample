@@ -3,7 +3,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { GenerateRequestSchema, validateForm } from '@app/schema';
 import { Hono } from 'hono';
 import * as v from 'valibot';
-import { generateForm } from './agent.ts';
+import { generateForm } from './agent/index.ts';
 
 const app = new Hono().basePath('/api');
 
@@ -18,10 +18,10 @@ app.post('/validate', async (c) => c.json(validateForm(await c.req.json())));
 
 app.post('/generate', async (c) => {
   const body = v.safeParse(GenerateRequestSchema, await c.req.json().catch(() => null));
-  if (!body.success) return c.json({ error: 'prompt を指定してください' }, 400);
+  if (!body.success) return c.json({ error: `リクエストが不正です: ${body.issues[0].message}` }, 400);
 
   try {
-    return c.json(await generateForm(body.output.prompt));
+    return c.json(await generateForm(body.output));
   } catch (error) {
     if (error instanceof Anthropic.APIError) {
       console.error(`Anthropic API error ${error.status}:`, error.message);

@@ -1,3 +1,4 @@
+import type { Metrics } from '@app/schema';
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent } from 'react';
 import styles from './ChatPane.module.css';
 
@@ -8,7 +9,14 @@ export type ChatMessage = {
   errors?: string[];
   /** 自動修正の前に失敗した各試行のエラー */
   repairs?: string[][];
+  /** 方式比較用の計測値 */
+  metrics?: Metrics;
 };
+
+const MODE_LABELS: Record<Metrics['mode'], string> = { regenerate: '全体再生成', patch: '差分ツール' };
+
+const formatMetrics = (m: Metrics) =>
+  `${MODE_LABELS[m.mode]} · API ${m.apiCalls}回 · 入力 ${m.inputTokens.toLocaleString()} / 出力 ${m.outputTokens.toLocaleString()} tokens · ${(m.durationMs / 1000).toFixed(1)}秒`;
 
 type Props = {
   messages: ChatMessage[];
@@ -52,7 +60,7 @@ export function ChatPane({ messages, pending, onSend }: Props) {
             )}
             {message.repairs && message.repairs.length > 0 && (
               <details className={styles.repairs}>
-                <summary>自動修正 {message.repairs.length} 回</summary>
+                <summary>差し戻し {message.repairs.length} 回</summary>
                 <ol>
                   {message.repairs.map((errors, i) => (
                     <li key={i}>
@@ -66,6 +74,7 @@ export function ChatPane({ messages, pending, onSend }: Props) {
                 </ol>
               </details>
             )}
+            {message.metrics && <p className={styles.metrics}>{formatMetrics(message.metrics)}</p>}
           </li>
         ))}
         {pending && <li className={styles.assistant}>生成中…</li>}
