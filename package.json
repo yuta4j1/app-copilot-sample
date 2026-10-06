@@ -1,0 +1,18 @@
+{
+  "name": "app-copilot-sample",
+  "private": true,
+  "type": "module",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "concurrently -n server,web -c blue,green \"npm run dev -w @app/server\" \"npm run dev -w @app/web\"",
+    "build": "npm run build -w @app/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.4",
+    "concurrently": "^10.0.5",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.3"
+  }
+}

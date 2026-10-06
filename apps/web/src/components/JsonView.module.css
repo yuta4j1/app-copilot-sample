@@ -1,0 +1,27 @@
+.wrapper {
+  position: relative;
+}
+
+.copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 4px 10px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.code {
+  margin: 0;
+  padding: 16px;
+  border-radius: 6px;
+  background: #f6f8fa;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow: auto;
+}

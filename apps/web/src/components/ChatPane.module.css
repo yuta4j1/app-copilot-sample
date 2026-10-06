@@ -1,0 +1,114 @@
+.chat {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.messages {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.user,
+.assistant {
+  max-width: 90%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.user {
+  align-self: flex-end;
+  background: #0969da;
+  color: #fff;
+}
+
+.assistant {
+  align-self: flex-start;
+  border: 1px solid #d0d7de;
+  background: #fff;
+}
+
+.assistant[data-error='true'] {
+  border-color: #ff8182;
+  background: #ffebe9;
+}
+
+.text {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.errors {
+  margin: 4px 0 0;
+  padding-left: 20px;
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+
+.composer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 8px;
+  background: #f6f8fa;
+}
+
+.input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.send {
+  align-self: flex-end;
+  padding: 6px 16px;
+  border: none;
+  border-radius: 6px;
+  background: #1f883d;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.send kbd {
+  margin-left: 4px;
+  font-family: inherit;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.repairs {
+  margin-top: 6px;
+  color: #59636e;
+  font-size: 12px;
+}
+
+.repairs summary {
+  cursor: pointer;
+}
+
+.repairs ol {
+  margin: 4px 0 0;
+  padding-left: 20px;
+}
