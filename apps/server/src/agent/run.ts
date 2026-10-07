@@ -6,6 +6,8 @@ import { patchTools, renderFormTool } from './tools.ts';
 /** 1回のリクエストで Agent を呼び出す最大回数(操作 → 結果の往復が続く場合の安全弁) */
 const MAX_TURNS = 10;
 
+const tools = [renderFormTool, ...patchTools];
+
 type Options = {
   client: Client;
   messages: Anthropic.Beta.BetaMessageParam[];
@@ -37,21 +39,20 @@ function runTool(form: Form | null, toolUse: Anthropic.Beta.BetaToolUseBlock): T
 }
 
 /**
- * 差分ツール方式: 現在のフォームに対して差分操作ツールを呼ばせ、サーバー側で順に適用する。
+ * Agent ループ: render_form(全体の置き換え)と差分操作ツールを呼ばせ、サーバー側で順に適用する。
  * 個々の操作の失敗は tool_result で、操作後のフォーム全体のバリデーションエラーはメッセージで返して直させる。
  */
-export async function patch({ client, messages: initial, form: initialForm, maxRepairs }: Options): Promise<GenerateResponse> {
+export async function runAgent({ client, messages: initial, form: initialForm, maxRepairs }: Options): Promise<GenerateResponse> {
   const messages = [...initial];
   const repairs: RepairHistory = [];
-  const metrics = createMetrics('patch');
-  const tools = initialForm ? patchTools : [renderFormTool];
+  const metrics = createMetrics();
   let form = initialForm;
   let changed = false;
   let validationFailures = 0;
   const texts: string[] = [];
 
   for (let turn = 0; turn < MAX_TURNS; turn++) {
-    const response = await createMessage(client, { mode: 'patch', tools, messages, parallelToolUse: true });
+    const response = await createMessage(client, { tools, messages });
     metrics.record(response);
 
     const stopped = stopMessage(response);
@@ -74,7 +75,7 @@ export async function patch({ client, messages: initial, form: initialForm, maxR
         if (outcome.error) errors.push(outcome.error);
         else changed = true;
       }
-      console.log(`[patch] turn=${turn + 1} ops=${toolUses.map((t) => t.name).join(',')} errors=${JSON.stringify(errors)}`);
+      console.log(`[agent] turn=${turn + 1} ops=${toolUses.map((t) => t.name).join(',')} errors=${JSON.stringify(errors)}`);
       if (errors.length > 0) repairs.push(errors);
 
       messages.push({ role: 'assistant', content: response.content });
@@ -82,14 +83,14 @@ export async function patch({ client, messages: initial, form: initialForm, maxR
       continue;
     }
 
-    // ツールを呼ばずに応答を終えた: 編集完了、または聞き返し
+    // ツールを呼ばずに応答を終えた: 作成・編集の完了、または聞き返し
     const message = texts.at(-1);
     if (!changed || !form) {
       return { type: 'message', message: message || '応答が空でした。もう一度お試しください。', repairs, metrics: metrics.done() };
     }
 
     const result = validateForm(form);
-    console.log(`[patch] turn=${turn + 1} done valid=${result.success}`);
+    console.log(`[agent] turn=${turn + 1} done valid=${result.success}`);
     if (result.success) return { type: 'form', form: result.form, message, repairs, metrics: metrics.done() };
 
     if (validationFailures >= maxRepairs) {

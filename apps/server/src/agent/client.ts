@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { ChatTurn, EditMode, Form, Metrics } from '@app/schema';
-import { systemPrompt } from './prompt.ts';
+import type { ChatTurn, Form, Metrics } from '@app/schema';
+import { SYSTEM_PROMPT } from './prompt.ts';
 
 export type Client = Pick<Anthropic, 'beta'>;
 
@@ -12,13 +12,11 @@ export const defaultClient: Client = new Anthropic(
 const model = process.env.ANTHROPIC_MODEL ?? 'claude-opus-5-5';
 
 type CreateOptions = {
-  mode: EditMode;
   tools: Anthropic.Beta.BetaTool[];
   messages: Anthropic.Beta.BetaMessageParam[];
-  parallelToolUse: boolean;
 };
 
-export function createMessage(client: Client, { mode, tools, messages, parallelToolUse }: CreateOptions) {
+export function createMessage(client: Client, { tools, messages }: CreateOptions) {
   return client.beta.messages.create({
     model,
     max_tokens: 16000,
@@ -26,10 +24,10 @@ export function createMessage(client: Client, { mode, tools, messages, parallelT
     betas: ['server-side-fallback-2026-07-01'],
     fallbacks: 'default',
     output_config: { effort: 'medium' },
-    system: systemPrompt(mode),
+    system: SYSTEM_PROMPT,
     tools,
     // Opus 5.5 は tool_choice の any / tool に非対応のため、auto + プロンプトで呼び出しを指示する
-    tool_choice: { type: 'auto', disable_parallel_tool_use: !parallelToolUse },
+    tool_choice: { type: 'auto' },
     messages,
   });
 }
@@ -61,9 +59,9 @@ export function stopMessage(response: Anthropic.Beta.BetaMessage): string | unde
   return undefined;
 }
 
-export function createMetrics(mode: EditMode) {
+export function createMetrics() {
   const startedAt = Date.now();
-  const metrics: Metrics = { mode, apiCalls: 0, inputTokens: 0, outputTokens: 0, durationMs: 0 };
+  const metrics: Metrics = { apiCalls: 0, inputTokens: 0, outputTokens: 0, durationMs: 0, toolCalls: {} };
   return {
     record(response: Anthropic.Beta.BetaMessage) {
       const usage = response.usage;
@@ -71,6 +69,9 @@ export function createMetrics(mode: EditMode) {
       metrics.inputTokens +=
         (usage?.input_tokens ?? 0) + (usage?.cache_creation_input_tokens ?? 0) + (usage?.cache_read_input_tokens ?? 0);
       metrics.outputTokens += usage?.output_tokens ?? 0;
+      for (const block of response.content) {
+        if (block.type === 'tool_use') metrics.toolCalls[block.name] = (metrics.toolCalls[block.name] ?? 0) + 1;
+      }
     },
     done(): Metrics {
       return { ...metrics, durationMs: Date.now() - startedAt };

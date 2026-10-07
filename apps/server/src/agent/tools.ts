@@ -13,7 +13,7 @@ type InputSchema = Anthropic.Beta.BetaTool.InputSchema;
 
 export const renderFormTool: Anthropic.Beta.BetaTool = {
   name: 'render_form',
-  description: 'フォーム定義の全体を出力し、画面にプレビューとして描画する。',
+  description: 'フォーム定義の全体を出力し、現在のフォームを置き換える。新規作成や全面的な作り直しのときだけ使い、部分的な編集には差分操作ツールを使う。',
   input_schema: formJsonSchema() as InputSchema,
 };
 
