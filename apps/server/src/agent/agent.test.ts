@@ -12,7 +12,7 @@ const invalidForm = {
   fields: [{ id: 'plan', type: 'select', label: 'プラン', options: [] }],
 };
 
-const usage = { input_tokens: 100, output_tokens: 10 };
+const usage = { input_tokens: 100, output_tokens: 10, cache_read_input_tokens: 50, cache_creation_input_tokens: 5 };
 const toolUse = (name: string, input: unknown, id: string) => ({ type: 'tool_use', id, name, input });
 const reply = (...content: unknown[]) => ({
   stop_reason: content.some((b) => (b as { type: string }).type === 'tool_use') ? 'tool_use' : 'end_turn',
@@ -58,8 +58,18 @@ describe('generateForm: 新規作成', () => {
     const result = await generateForm(request(), { client });
 
     expect(result).toMatchObject({ type: 'form', form: validForm, message: 'お問い合わせフォームを作成しました。', repairs: [] });
-    expect(result.metrics).toMatchObject({ apiCalls: 2, inputTokens: 200, outputTokens: 20, toolCalls: { render_form: 1 } });
+    expect(result.metrics).toMatchObject({
+      apiCalls: 2,
+      inputTokens: 200,
+      cacheReadTokens: 100,
+      cacheWriteTokens: 10,
+      outputTokens: 20,
+      toolCalls: { render_form: 1 },
+    });
     expect(toolNames(requests[0]!)).toEqual(['render_form', 'add_field', 'update_field', 'remove_field', 'move_field', 'update_form']);
+    // ツール定義 + システムプロンプトと、会話の末尾にキャッシュのブレークポイントを置く
+    expect(requests[0]!.system).toMatchObject([{ type: 'text', cache_control: { type: 'ephemeral' } }]);
+    expect(requests[0]).toMatchObject({ cache_control: { type: 'ephemeral' } });
   });
 
   it('render_form のバリデーションエラーを tool_result で返し、修正後の結果を採用する', async () => {

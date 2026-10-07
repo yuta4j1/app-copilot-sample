@@ -24,11 +24,15 @@ export function createMessage(client: Client, { tools, messages }: CreateOptions
     betas: ['server-side-fallback-2026-07-01'],
     fallbacks: 'default',
     output_config: { effort: 'medium' },
-    system: SYSTEM_PROMPT,
+    // プロンプトキャッシュ: tools → system → messages の順に先頭一致でキャッシュされる。
+    // system の末尾に明示的なブレークポイントを置き、毎回同じツール定義 + システムプロンプトを確実に再利用する
+    system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
     tools,
     // Opus 5.5 は tool_choice の any / tool に非対応のため、auto + プロンプトで呼び出しを指示する
     tool_choice: { type: 'auto' },
     messages,
+    // 伸びていく会話の末尾にも自動でブレークポイントを置き、ループ内の2回目以降の呼び出しで前回までを再利用する
+    cache_control: { type: 'ephemeral' },
   });
 }
 
@@ -61,13 +65,22 @@ export function stopMessage(response: Anthropic.Beta.BetaMessage): string | unde
 
 export function createMetrics() {
   const startedAt = Date.now();
-  const metrics: Metrics = { apiCalls: 0, inputTokens: 0, outputTokens: 0, durationMs: 0, toolCalls: {} };
+  const metrics: Metrics = {
+    apiCalls: 0,
+    inputTokens: 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    outputTokens: 0,
+    durationMs: 0,
+    toolCalls: {},
+  };
   return {
     record(response: Anthropic.Beta.BetaMessage) {
       const usage = response.usage;
       metrics.apiCalls += 1;
-      metrics.inputTokens +=
-        (usage?.input_tokens ?? 0) + (usage?.cache_creation_input_tokens ?? 0) + (usage?.cache_read_input_tokens ?? 0);
+      metrics.inputTokens += usage?.input_tokens ?? 0;
+      metrics.cacheReadTokens += usage?.cache_read_input_tokens ?? 0;
+      metrics.cacheWriteTokens += usage?.cache_creation_input_tokens ?? 0;
       metrics.outputTokens += usage?.output_tokens ?? 0;
       for (const block of response.content) {
         if (block.type === 'tool_use') metrics.toolCalls[block.name] = (metrics.toolCalls[block.name] ?? 0) + 1;

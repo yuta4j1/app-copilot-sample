@@ -18,7 +18,8 @@ const formatMetrics = (m: Metrics) => {
   return [
     ...(tools.length > 0 ? [tools.join(', ')] : []),
     `API ${m.apiCalls}回`,
-    `入力 ${m.inputTokens.toLocaleString()} / 出力 ${m.outputTokens.toLocaleString()} tokens`,
+    `入力 ${m.inputTokens.toLocaleString()}(キャッシュ読込 ${m.cacheReadTokens.toLocaleString()} / 書込 ${m.cacheWriteTokens.toLocaleString()})`,
+    `出力 ${m.outputTokens.toLocaleString()} tokens`,
     `${(m.durationMs / 1000).toFixed(1)}秒`,
   ].join(' · ');
 };

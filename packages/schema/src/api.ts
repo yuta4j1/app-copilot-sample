@@ -24,7 +24,12 @@ export type RepairHistory = string[][];
 /** 1リクエストあたりの計測値 */
 export type Metrics = {
   apiCalls: number;
+  /** キャッシュを使わずに処理された入力トークン */
   inputTokens: number;
+  /** キャッシュから読み込んだ入力トークン(通常の約1/10の料金) */
+  cacheReadTokens: number;
+  /** キャッシュに書き込んだ入力トークン(通常の約1.25倍の料金) */
+  cacheWriteTokens: number;
   outputTokens: number;
   durationMs: number;
   /** ツールごとの呼び出し回数(全体置き換えと差分操作の使い分けを見るため) */
